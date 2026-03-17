@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    uses: recmanj/shared-workflows/.github/workflows/build-push-image.yaml@main
+    with:
+      image_name: recmanj/demo-backend
+    permissions:
+      contents: read
+      packages: write
