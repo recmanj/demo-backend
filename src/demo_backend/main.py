@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import psycopg2
 
-app = FastAPI()
+app = FastAPI(title="Demo Backend", version="1.1.0")
 
 app.add_middleware(
     CORSMiddleware,
