@@ -1,0 +1,17 @@
+name: Preview
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+    branches: [main]
+
+jobs:
+  build:
+    if: contains(github.event.pull_request.labels.*.name, 'preview')
+    uses: recmanj/shared-workflows/.github/workflows/preview-build.yaml@main
+    with:
+      image_name: recmanj/demo-backend
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
