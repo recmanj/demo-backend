@@ -67,6 +67,12 @@ def delete_note(note_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
+@app.get("/api/notes/count")
+def count_notes(db: Session = Depends(get_db)):
+    total = db.query(Note).count()
+    return {"count": total}
+
+
 @app.post("/api/seed")
 def seed(db: Session = Depends(get_db)):
     count = run_seed(db)
