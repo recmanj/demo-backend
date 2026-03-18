@@ -1,10 +1,13 @@
-import os
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import psycopg2
+from sqlalchemy.orm import Session
 
-app = FastAPI(title="Demo Backend", version="1.2.0")
+from demo_backend.database import get_db
+from demo_backend.models import Note
+from demo_backend.schemas import NoteCreate, NoteUpdate, NoteOut
+from demo_backend.seed import run_seed
+
+app = FastAPI(title="Demo Backend", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,39 +16,58 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://demo:demo@postgres.demo-apps.svc.cluster.local:5432/demo",
-)
-
-
-def get_greeting_from_db() -> str:
-    conn = psycopg2.connect(DATABASE_URL)
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                "CREATE TABLE IF NOT EXISTS greetings (id SERIAL PRIMARY KEY, message TEXT NOT NULL)"
-            )
-            cur.execute("SELECT message FROM greetings ORDER BY id LIMIT 1")
-            row = cur.fetchone()
-            if row is None:
-                cur.execute(
-                    "INSERT INTO greetings (message) VALUES (%s) RETURNING message",
-                    ("Hello from the demo backend!",),
-                )
-                row = cur.fetchone()
-            conn.commit()
-            return row[0]
-    finally:
-        conn.close()
-
 
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
 
 
-@app.get("/api/greeting")
-def greeting():
-    message = get_greeting_from_db()
-    return {"message": message}
+@app.get("/api/notes", response_model=list[NoteOut])
+def list_notes(db: Session = Depends(get_db)):
+    return db.query(Note).order_by(Note.created_at.desc()).all()
+
+
+@app.get("/api/notes/{note_id}", response_model=NoteOut)
+def get_note(note_id: int, db: Session = Depends(get_db)):
+    note = db.query(Note).filter(Note.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return note
+
+
+@app.post("/api/notes", response_model=NoteOut, status_code=201)
+def create_note(payload: NoteCreate, db: Session = Depends(get_db)):
+    note = Note(title=payload.title, content=payload.content)
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+    return note
+
+
+@app.put("/api/notes/{note_id}", response_model=NoteOut)
+def update_note(note_id: int, payload: NoteUpdate, db: Session = Depends(get_db)):
+    note = db.query(Note).filter(Note.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    if payload.title is not None:
+        note.title = payload.title
+    if payload.content is not None:
+        note.content = payload.content
+    db.commit()
+    db.refresh(note)
+    return note
+
+
+@app.delete("/api/notes/{note_id}", status_code=204)
+def delete_note(note_id: int, db: Session = Depends(get_db)):
+    note = db.query(Note).filter(Note.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    db.delete(note)
+    db.commit()
+
+
+@app.post("/api/seed")
+def seed(db: Session = Depends(get_db)):
+    count = run_seed(db)
+    return {"inserted": count}
