@@ -11,7 +11,7 @@ if config.config_file_name is not None:
 # Override sqlalchemy.url from environment
 db_url = os.getenv("DATABASE_URL")
 if db_url:
-    config.set_main_option("sqlalchemy.url", db_url)
+    config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
 from demo_backend.models import Base
 
