@@ -22,6 +22,11 @@ def healthz():
     return {"status": "ok"}
 
 
+@app.get("/api/version")
+def version():
+    return {"version": app.version}
+
+
 @app.get("/api/notes", response_model=list[NoteOut])
 def list_notes(db: Session = Depends(get_db)):
     return db.query(Note).order_by(Note.created_at.desc()).all()
