@@ -7,7 +7,7 @@ from demo_backend.models import Note
 from demo_backend.schemas import NoteCreate, NoteUpdate, NoteOut
 from demo_backend.seed import run_seed
 
-app = FastAPI(title="Demo Backend", version="2.0.0")
+app = FastAPI(title="Demo Backend", version="2.1.1")
 
 app.add_middleware(
     CORSMiddleware,
