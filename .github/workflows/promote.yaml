@@ -1,0 +1,51 @@
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - test
+          - staging
+          - prod
+      deployment_type:
+        description: "Deployment type"
+        required: true
+        type: choice
+        options:
+          - helm
+          - kustomize
+      version:
+        description: "Version to promote (chart version for helm, image tag for kustomize — leave empty for kustomize to use current SHA)"
+        required: false
+        type: string
+
+jobs:
+  resolve-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Resolve version
+        id: resolve
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+  promote:
+    needs: resolve-version
+    uses: recmanj/shared-workflows/.github/workflows/promote-app.yaml@main
+    with:
+      environment: ${{ inputs.environment }}
+      deployment_type: ${{ inputs.deployment_type }}
+      app_name: demo-backend
+      image_name: ghcr.io/recmanj/demo-backend
+      version: ${{ needs.resolve-version.outputs.version }}
+    secrets:
+      ARGOCD_REPO_TOKEN: ${{ secrets.ARGOCD_REPO_TOKEN }}
