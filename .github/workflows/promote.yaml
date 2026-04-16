@@ -42,6 +42,7 @@ jobs:
     needs: resolve-version
     uses: recmanj/shared-workflows/.github/workflows/promote-app.yaml@main
     with:
+      argocd_repository: recmanj/argocd-multirepo-demo-app-kustomize
       environment: ${{ inputs.environment }}
       deployment_type: ${{ inputs.deployment_type }}
       app_name: demo-backend
